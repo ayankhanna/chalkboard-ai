@@ -21,7 +21,6 @@ struct AnalyzeImageResponse: Codable {
     struct BoardContent: Codable {
         let topic1: Topic
         let topic2: Topic
-        let topic3: Topic
     }
     
     struct Prereq: Codable {
@@ -34,8 +33,7 @@ struct AnalyzeImageResponse: Codable {
         let detail: String
     }
     
-    let boardContent: BoardContent
-    let prereqs: [Prereq]
-    let future: [Future]
+    let boardContent: [String: Topic]
+    let prereqs: [String: Prereq]
+    let future: [String: Future]
 }
-

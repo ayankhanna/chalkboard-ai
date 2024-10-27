@@ -15,6 +15,7 @@ struct LandingPageView: View {
     @State private var selectedImage: UIImage?
     @State private var navigateToAnalyzingView = false
     @State public var photoUploadUrl: String?
+    @State private var navigateToTakePhotoView = false
 
     var body: some View {
         NavigationStack {
@@ -65,7 +66,7 @@ struct LandingPageView: View {
                     }
                     
                     Button(action: {
-                        // Action for take picture
+                        navigateToTakePhotoView = true
                     }) {
                         HStack {
                             Image(systemName: "camera")
@@ -86,6 +87,11 @@ struct LandingPageView: View {
                 
                 // NavigationLink to AnalyzingView with photoUploadUrl
                 NavigationLink(destination: AnalyzingView(photoUploadUrl: photoUploadUrl ?? "", className: className), isActive: $navigateToAnalyzingView) {
+                    EmptyView()
+                }
+                
+                // NavigationLink to TakePhotoView
+                NavigationLink(destination: TakePhotoView(className: className), isActive: $navigateToTakePhotoView) {
                     EmptyView()
                 }
             }

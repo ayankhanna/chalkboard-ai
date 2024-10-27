@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import Foundation
 
 struct AnalyzingView: View {
     let photoUploadUrl: String
@@ -22,6 +23,7 @@ struct AnalyzingView: View {
         "Finalizing...."
     ]
     @State private var navigateToResultsView = false
+    @State private var rawApiResponse: String? // Variable to store raw API response
 
     var body: some View {
         GeometryReader { geometry in
@@ -29,37 +31,42 @@ struct AnalyzingView: View {
                 Color.black.edgesIgnoringSafeArea(.all)
                 
                 VStack {
-                    Text(messages[currentMessageIndex])
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding(.top, 20)
-
                     ZStack {
                         if let url = URL(string: photoUploadUrl) {
                             AsyncImage(url: url) { image in
                                 image
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
-                                    .frame(width: geometry.size.width, height: geometry.size.height * 0.7)
+                                    .frame(width: geometry.size.width*0.9, height: geometry.size.height * 0.3)
                                     .clipped()
+                                    .border(Color.blue, width: 2)
                             } placeholder: {
                                 ProgressView()
-                                    .frame(width: geometry.size.width, height: geometry.size.height * 0.7)
+                                    .frame(width: geometry.size.width*0.9, height: geometry.size.height * 0.3)
+                                    .border(Color.blue, width: 2)
+                                    .offset(y: (geometry.size.height * 0.15))
                             }
                         } else {
                             Text("Invalid URL")
                                 .foregroundColor(.red)
-                                .frame(width: geometry.size.width, height: geometry.size.height * 0.7)
+                                .frame(width: geometry.size.width*0.9, height: geometry.size.height * 0.3)
+                                .border(Color.blue, width: 2)
+                                .offset(y: (geometry.size.height * 0.15))
                         }
 
                         Rectangle()
                             .fill(Color.white.opacity(0.5))
                             .frame(width: geometry.size.width, height: 4)
                             .offset(y: animationOffset)
+                            .offset(y: (geometry.size.height * 0.15))
                     }
-                    .frame(width: geometry.size.width, height: geometry.size.height * 0.7)
+                    .frame(width: geometry.size.width*0.9, height: geometry.size.height * 0.3)
                     .clipped()
-
+                    Spacer()
+                    Text(messages[currentMessageIndex])
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.top, 20)
                     Spacer()
                 }
             }
@@ -75,15 +82,15 @@ struct AnalyzingView: View {
         .navigationBarBackButtonHidden(true)
         .navigationBarHidden(true)
         .background(
-            NavigationLink(destination: ResultsView(), isActive: $navigateToResultsView) {
+            NavigationLink(destination: ResultsView(rawApiResponse: rawApiResponse ?? ""), isActive: $navigateToResultsView) {
                 EmptyView()
             }
         )
     }
 
     private func startAnimation(height: CGFloat) {
-        withAnimation(Animation.linear(duration: 2).repeatForever(autoreverses: false)) {
-            animationOffset = height / 2
+        withAnimation(Animation.linear(duration: 2).repeatForever(autoreverses: true)) {
+            animationOffset = height
         }
     }
 
@@ -105,9 +112,15 @@ struct AnalyzingView: View {
             print("Using photoApiInput: \(photoApiInput)")
             apiService.analyzeImage(className: className, imageUrl: photoApiInput) { result in
                 switch result {
-                case .success:
-                    print("analyzeImage completed successfully")
-                    navigateToResultsView = true
+                case .success(let rawResponseString):
+                    print("Raw response data: \(rawResponseString)")
+                    rawApiResponse = rawResponseString
+                    
+                    // Ensure UI updates are on the main thread
+                    DispatchQueue.main.async {
+                        navigateToResultsView = true
+                    }
+                    
                 case .failure(let error):
                     print("analyzeImage failed with error: \(error)")
                 }
@@ -118,8 +131,49 @@ struct AnalyzingView: View {
     }
 }
 
-struct AnalyzingView_Previews: PreviewProvider {
-    static var previews: some View {
-        AnalyzingView(photoUploadUrl: "https://example.com/image.jpg", className: "Sample Class")
+// struct AnalyzingView_Previews: PreviewProvider {
+//     static var previews: some View {
+//         AnalyzingView(photoUploadUrl: "https://example.com/image.jpg", className: "Sample Class")
+//     }
+// }
+
+// struct AnalyzeImageResponse: Codable {
+//     struct Topic: Codable {
+//         let title: String
+//         let detail: String
+//     }
+    
+//     struct BoardContent: Codable {
+//         let topic1: Topic
+//     }
+    
+//     struct Prereq: Codable {
+//         let title: String
+//         let detail: String
+//     }
+    
+//     struct Future: Codable {
+//         let title: String
+//         let detail: String
+//     }
+    
+//     let boardContent: BoardContent
+//     let prereqs: [String: Prereq]
+//     let future: [String: Future]
+// }
+
+func decodeResponse(data: Data) {
+    do {
+        // First, decode the data as a string
+        let jsonString = try JSONDecoder().decode(String.self, from: data)
+        
+        // Convert the JSON string back to Data
+        if let jsonData = jsonString.data(using: .utf8) {
+            // Decode the JSON data into your model
+            let response = try JSONDecoder().decode(AnalyzeImageResponse.self, from: jsonData)
+            print("Decoded response: \(response)")
+        }
+    } catch {
+        print("Failed to decode response: \(error)")
     }
 }

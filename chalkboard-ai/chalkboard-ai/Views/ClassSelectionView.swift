@@ -33,6 +33,7 @@ struct ClassSelectionView: View {
                         .padding(10)
                         .background(Color.white)
                         .cornerRadius(8)
+                        .foregroundColor(Color.black)
                         .onChange(of: searchQuery) { newValue in
                             debounceSearch(newValue)
                         }
